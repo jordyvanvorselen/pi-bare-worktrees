@@ -4,6 +4,12 @@
   "description": "Git worktrees for --bare checkouts in pi: one worktree per task, shared env links, protected branches, and a worktree tool the agent uses itself.",
   "type": "module",
   "license": "MIT",
+  "author": "Jordy van Vorselen",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jordyvanvorselen/pi-bare-worktrees.git"
+  },
+  "homepage": "https://github.com/jordyvanvorselen/pi-bare-worktrees#readme",
   "files": [
     "src/**/*.ts",
     "README.md",

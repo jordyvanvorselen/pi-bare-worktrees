@@ -34,7 +34,7 @@ Outside this layout the extension turns itself off and says so once at startup.
 ## Install
 
 ```sh
-pi install npm:pi-bare-worktrees
+pi install git:github.com/jordyvanvorselen/pi-bare-worktrees
 ```
 
 Then, inside a worktree:
