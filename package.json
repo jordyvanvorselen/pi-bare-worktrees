@@ -1,0 +1,43 @@
+{
+  "name": "pi-bare-worktrees",
+  "version": "0.1.0",
+  "description": "Git worktrees for --bare checkouts in pi: one worktree per task, shared env links, protected branches, and a worktree tool the agent uses itself.",
+  "type": "module",
+  "license": "MIT",
+  "files": [
+    "src/**/*.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "pi-package",
+    "pi",
+    "coding-agent",
+    "git",
+    "worktree",
+    "bare",
+    "extension"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.ts"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": ">=0.87.0",
+    "@earendil-works/pi-coding-agent": ">=0.87.0",
+    "@earendil-works/pi-tui": ">=0.87.0"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "^0.87.0",
+    "@earendil-works/pi-coding-agent": "^0.87.0",
+    "@earendil-works/pi-tui": "^0.87.0",
+    "@types/node": "^24.0.0",
+    "typebox": "1.3.27",
+    "typescript": "^5.9.0"
+  }
+}
