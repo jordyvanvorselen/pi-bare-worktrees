@@ -43,7 +43,7 @@ Then, inside a worktree:
 /wt setup
 ```
 
-The wizard asks for the shared env directory (default `.shared-env`), base branch, protected patterns, branch template, post-create commands and copy list. It saves to `.bare/config` under `[bare-worktrees]` and runs `doctor` right away.
+Setup opens one screen with every setting prefilled: shared env directory, base branch, protected patterns, branch template, fetch before create, auto-link, post-create commands and copy list. Press Enter through the fields to keep the defaults, or type to edit a value in place. `↑↓` moves between fields, space toggles a yes/no field, `ctrl+s` saves from anywhere and `esc` cancels. It saves to `.bare/config` under `[bare-worktrees]` and runs `doctor` right away.
 
 ## Commands
 

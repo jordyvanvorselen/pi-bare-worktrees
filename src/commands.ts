@@ -10,6 +10,7 @@ import type { State } from "./state.ts";
 import { isRouted } from "./state.ts";
 import { publish } from "./status.ts";
 import type { LiveRefresher } from "./types.ts";
+import { editForm, type FormField, type FormValues } from "./ui/form.ts";
 import { pickMany } from "./ui/picker.ts";
 
 const USAGE = [
@@ -82,6 +83,52 @@ async function switchSessionTo(ctx: ExtensionCommandContext, state: State, path:
 	return true;
 }
 
+/** Setup fields, prefilled with the current config so Enter keeps everything. */
+export function setupFields(current: RepoConfig, defaultBranch: string): FormField[] {
+	return [
+		{ kind: "text", id: "sharedEnv", label: "Shared env directory", value: current.sharedEnv, help: "Relative to the root. Every file in it is symlinked into each worktree." },
+		{ kind: "text", id: "baseBranch", label: "Base branch", value: current.baseBranch || defaultBranch, help: "New worktrees branch off this ref. It is always protected." },
+		{ kind: "text", id: "protected", label: "Protected patterns", value: current.protected.join(", "), empty: "none", help: "Comma separated globs of read-only branches, e.g. release/*." },
+		{ kind: "text", id: "branchTemplate", label: "Branch template", value: current.branchTemplate, help: "Name for new work. {slug} is filled from the task." },
+		{ kind: "toggle", id: "fetchBeforeCreate", label: "Fetch before create", value: current.fetchBeforeCreate, help: "Run git fetch --prune before every new worktree. Costs a network round-trip." },
+		{ kind: "toggle", id: "autoLink", label: "Auto-link on start", value: current.autoLink, help: "Re-link shared env files at session start when links are missing." },
+		{ kind: "text", id: "postCreate", label: "Post-create commands", value: current.postCreate.join(" && "), empty: "none", help: "Run inside a new worktree, separated by ' && '. Leave empty for none." },
+		{ kind: "text", id: "copy", label: "Copy instead of link", value: current.copy.join(", "), empty: "none", help: "Comma separated paths copied from the base worktree, e.g. .idea." },
+	];
+}
+
+/** Turn raw form values into a config, falling back to `current` for blanks. */
+export function configFromForm(values: FormValues, current: RepoConfig, defaultBranch: string): RepoConfig {
+	const text = (id: string, fallback: string) => (typeof values[id] === "string" ? (values[id] as string).trim() : "") || fallback;
+	const list = (id: string) => text(id, "").split(",").map((s) => s.trim()).filter(Boolean);
+	return {
+		sharedEnv: text("sharedEnv", current.sharedEnv),
+		baseBranch: text("baseBranch", current.baseBranch || defaultBranch),
+		protected: list("protected"),
+		branchTemplate: text("branchTemplate", current.branchTemplate),
+		fetchBeforeCreate: values.fetchBeforeCreate === true,
+		postCreate: text("postCreate", "").split(/\s*&&\s*/).filter(Boolean),
+		copy: list("copy"),
+		autoLink: values.autoLink === true,
+	};
+}
+
+/** One prompt per field, for hosts without a TUI. Defaults are in the title. */
+async function askFields(ctx: ExtensionContext, fields: FormField[]): Promise<FormValues | null> {
+	const values: FormValues = {};
+	for (const field of fields) {
+		if (field.kind === "toggle") {
+			values[field.id] = await ctx.ui.confirm(`${field.label}?`, `${field.help ?? ""}\nCurrently ${field.value ? "yes" : "no"}.`);
+			continue;
+		}
+		const shown = field.value || field.empty || "empty";
+		const answer = await ctx.ui.input(`${field.label} [${shown}] — enter keeps it`, field.value);
+		if (answer === undefined) return null;
+		values[field.id] = answer.trim() || field.value;
+	}
+	return values;
+}
+
 export async function runSetup(ctx: ExtensionContext, state: State): Promise<boolean> {
 	if (!state.bare) {
 		ctx.ui.notify("Not a bare checkout: nothing to set up.", "warning");
@@ -89,35 +136,13 @@ export async function runSetup(ctx: ExtensionContext, state: State): Promise<boo
 	}
 	const bare = state.bare;
 	const current = state.config ?? buildRepoConfig(new Map(), bare.defaultBranch, state.settings);
-	const ask = async (title: string, fallback: string) => {
-		const v = await ctx.ui.input(title, fallback);
-		if (v === undefined) return undefined;
-		return v.trim() || fallback;
-	};
-	const sharedEnv = await ask("Shared env directory, relative to the root (mirrored as symlinks into every worktree)", ".shared-env");
-	if (sharedEnv === undefined) return false;
-	const baseBranch = await ask("Base branch for new worktrees", current.baseBranch || bare.defaultBranch);
-	if (baseBranch === undefined) return false;
-	const protectedRaw = await ask("Protected branch patterns, comma separated (base branch is always protected)", current.protected.join(", ") || "release/*");
-	if (protectedRaw === undefined) return false;
-	const branchTemplate = await ask("Branch template for new work; {slug} is filled from the task", current.branchTemplate);
-	if (branchTemplate === undefined) return false;
-	const fetchBeforeCreate = await ctx.ui.confirm("Fetch before create?", "Run git fetch --prune before every new worktree. Costs a network round-trip.");
-	const postCreateRaw = await ctx.ui.input("Post-create commands, separated by ' && ' (leave empty for none)", current.postCreate.join(" && "));
-	if (postCreateRaw === undefined) return false;
-	const copyRaw = await ctx.ui.input("Paths to copy instead of link, comma separated (e.g. .idea). Leave empty for none", current.copy.join(", "));
-	if (copyRaw === undefined) return false;
+	const fields = setupFields(current, bare.defaultBranch);
+	const edited = await editForm(ctx, "Set up bare worktrees", fields);
+	const values = edited === undefined ? await askFields(ctx, fields) : edited;
+	if (!values) return false;
 
-	const config: RepoConfig = {
-		sharedEnv,
-		baseBranch,
-		protected: protectedRaw.split(",").map((s) => s.trim()).filter(Boolean),
-		branchTemplate,
-		fetchBeforeCreate,
-		postCreate: postCreateRaw.trim() ? postCreateRaw.split(/\s*&&\s*/).filter(Boolean) : [],
-		copy: copyRaw.split(",").map((s) => s.trim()).filter(Boolean),
-		autoLink: true,
-	};
+	const config = configFromForm(values, current, bare.defaultBranch);
+	const sharedEnv = config.sharedEnv;
 	await writeRepoConfig(bare.bareDir, config);
 	state.config = buildRepoConfig(readRepoConfigValues(bare.bareDir), bare.defaultBranch, state.settings);
 	state.configured = true;
