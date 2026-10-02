@@ -55,7 +55,10 @@ describe("operations", () => {
 		assert.equal(r.postCreate[0]?.code, 0);
 		assert.equal(existsSync(join(r.worktree.path, ".post-create")), true);
 		assert.equal(state.active?.branch, "feat/one");
-		assert.deepEqual(entries.at(-1), { type: ENTRY_TYPE, data: { active: { branch: "feat/one", path: r.worktree.path } } });
+		assert.deepEqual(entries.at(-1), {
+			type: ENTRY_TYPE,
+			data: { active: { branch: "feat/one", path: r.worktree.path } },
+		});
 		assert.equal(events.at(-1)?.name, "bare-worktrees:changed");
 	});
 
@@ -104,10 +107,16 @@ describe("operations", () => {
 		const dry = await doctor(state, false);
 		assert.deepEqual(
 			dry.missingLinks.map((m) => [m.worktree.name, m.files]),
-			[["feat/one", ["app/.env"]], ["main", [".env", "app/.env"]]],
+			[
+				["feat/one", ["app/.env"]],
+				["main", [".env", "app/.env"]],
+			],
 			"main was created by git in the fixture and never linked",
 		);
-		assert.deepEqual(dry.detached.map((d) => d.worktree.name), ["feat/one"]);
+		assert.deepEqual(
+			dry.detached.map((d) => d.worktree.name),
+			["feat/one"],
+		);
 		const fixed = await doctor(state, true);
 		assert.equal(fixed.fixed.linked, 3);
 		assert.deepEqual((await doctor(state, false)).missingLinks, []);

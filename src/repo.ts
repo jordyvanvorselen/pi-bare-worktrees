@@ -157,7 +157,11 @@ export type BranchOrigin = "local" | "remote" | "new";
  * Check out `branch` at `<root>/<branch>`: an existing branch as-is, a
  * remote-only branch tracking origin, a new one off `from`.
  */
-export async function addWorktree(bare: BareRoot, branch: string, from?: string): Promise<{ path: string; origin: BranchOrigin; base: string | undefined }> {
+export async function addWorktree(
+	bare: BareRoot,
+	branch: string,
+	from?: string,
+): Promise<{ path: string; origin: BranchOrigin; base: string | undefined }> {
 	const path = worktreePath(bare, branch);
 	if (existsSync(path) && statSync(path).isDirectory() && readdirSync(path).length > 0) {
 		throw new Error(`${path} already exists and is not empty`);
@@ -211,7 +215,7 @@ export async function upstreamStatus(path: string): Promise<Upstream | null> {
 	if (r.code !== 0) {
 		// No upstream, or the upstream ref was deleted after a prune.
 		const cfg = await git(path, ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"], 10_000);
-		return cfg.code === 0 ? null : (cfg.stderr.includes("no upstream") ? null : { ahead: 0, behind: 0, gone: true });
+		return cfg.code === 0 ? null : cfg.stderr.includes("no upstream") ? null : { ahead: 0, behind: 0, gone: true };
 	}
 	const [ahead = "0", behind = "0"] = r.stdout.split(/\s+/);
 	return { ahead: Number(ahead), behind: Number(behind), gone: false };
@@ -219,7 +223,11 @@ export async function upstreamStatus(path: string): Promise<Upstream | null> {
 
 /** Local branches whose upstream was deleted on the remote. */
 export async function goneBranches(bare: BareRoot): Promise<string[]> {
-	const out = await gitOrThrow(bare.bareDir, ["for-each-ref", "--format=%(refname:short)\t%(upstream:track)", "refs/heads"]);
+	const out = await gitOrThrow(bare.bareDir, [
+		"for-each-ref",
+		"--format=%(refname:short)\t%(upstream:track)",
+		"refs/heads",
+	]);
 	const gone: string[] = [];
 	for (const line of out.split("\n")) {
 		const [name, track] = line.split("\t");

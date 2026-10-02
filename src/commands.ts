@@ -4,8 +4,27 @@ import { existsSync, unlinkSync } from "node:fs";
 import { basename, join } from "node:path";
 import { buildRepoConfig, readRepoConfigValues, writeRepoConfig, type RepoConfig } from "./config.ts";
 import { compileProtected } from "./policy.ts";
-import { create, doctor, ensureLinks, findWorktree, refreshWorktrees, remove, setEnforcement, use, WorktreeError, activate } from "./operations.ts";
-import { canonical, fetchPrune, goneBranches, isDirty, pruneWorktrees, worktreeForPath, type Worktree } from "./repo.ts";
+import {
+	create,
+	doctor,
+	ensureLinks,
+	findWorktree,
+	refreshWorktrees,
+	remove,
+	setEnforcement,
+	use,
+	WorktreeError,
+	activate,
+} from "./operations.ts";
+import {
+	canonical,
+	fetchPrune,
+	goneBranches,
+	isDirty,
+	pruneWorktrees,
+	worktreeForPath,
+	type Worktree,
+} from "./repo.ts";
 import type { State } from "./state.ts";
 import { isRouted } from "./state.ts";
 import { publish } from "./status.ts";
@@ -54,7 +73,7 @@ function fail(ctx: ExtensionContext, error: unknown) {
  * Move the session itself into `path`: fork the session file with the new
  * cwd and switch to it, like powerline's /cd. Only possible from a command.
  */
-async function switchSessionTo(ctx: ExtensionCommandContext, state: State, path: string): Promise<boolean> {
+async function switchSessionTo(ctx: ExtensionCommandContext, _state: State, path: string): Promise<boolean> {
 	if (canonical(ctx.cwd) === path) return true;
 	const sessionFile = ctx.sessionManager.getSessionFile();
 	if (!sessionFile) return false;
@@ -86,28 +105,86 @@ async function switchSessionTo(ctx: ExtensionCommandContext, state: State, path:
 /** Setup fields, prefilled with the current config so Enter keeps everything. */
 export function setupFields(current: RepoConfig, defaultBranch: string): FormField[] {
 	return [
-		{ kind: "text", id: "sharedEnv", label: "Shared env directory", value: current.sharedEnv, help: "Relative to the root. Every file in it is symlinked into each worktree." },
-		{ kind: "text", id: "baseBranch", label: "Base branch", value: current.baseBranch || defaultBranch, help: "New worktrees branch off this ref. It is always protected." },
-		{ kind: "text", id: "protected", label: "Protected patterns", value: current.protected.join(", "), empty: "none", help: "Comma separated globs of read-only branches, e.g. release/*." },
-		{ kind: "text", id: "branchTemplate", label: "Branch template", value: current.branchTemplate, help: "Name for new work. {slug} is filled from the task." },
-		{ kind: "toggle", id: "fetchBeforeCreate", label: "Fetch before create", value: current.fetchBeforeCreate, help: "Run git fetch --prune before every new worktree. Costs a network round-trip." },
-		{ kind: "toggle", id: "autoLink", label: "Auto-link on start", value: current.autoLink, help: "Re-link shared env files at session start when links are missing." },
-		{ kind: "text", id: "postCreate", label: "Post-create commands", value: current.postCreate.join(" && "), empty: "none", help: "Run inside a new worktree, separated by ' && '. Leave empty for none." },
-		{ kind: "text", id: "copy", label: "Copy instead of link", value: current.copy.join(", "), empty: "none", help: "Comma separated paths copied from the base worktree, e.g. .idea." },
+		{
+			kind: "text",
+			id: "sharedEnv",
+			label: "Shared env directory",
+			value: current.sharedEnv,
+			help: "Relative to the root. Every file in it is symlinked into each worktree.",
+		},
+		{
+			kind: "text",
+			id: "baseBranch",
+			label: "Base branch",
+			value: current.baseBranch || defaultBranch,
+			help: "New worktrees branch off this ref. It is always protected.",
+		},
+		{
+			kind: "text",
+			id: "protected",
+			label: "Protected patterns",
+			value: current.protected.join(", "),
+			empty: "none",
+			help: "Comma separated globs of read-only branches, e.g. release/*.",
+		},
+		{
+			kind: "text",
+			id: "branchTemplate",
+			label: "Branch template",
+			value: current.branchTemplate,
+			help: "Name for new work. {slug} is filled from the task.",
+		},
+		{
+			kind: "toggle",
+			id: "fetchBeforeCreate",
+			label: "Fetch before create",
+			value: current.fetchBeforeCreate,
+			help: "Run git fetch --prune before every new worktree. Costs a network round-trip.",
+		},
+		{
+			kind: "toggle",
+			id: "autoLink",
+			label: "Auto-link on start",
+			value: current.autoLink,
+			help: "Re-link shared env files at session start when links are missing.",
+		},
+		{
+			kind: "text",
+			id: "postCreate",
+			label: "Post-create commands",
+			value: current.postCreate.join(" && "),
+			empty: "none",
+			help: "Run inside a new worktree, separated by ' && '. Leave empty for none.",
+		},
+		{
+			kind: "text",
+			id: "copy",
+			label: "Copy instead of link",
+			value: current.copy.join(", "),
+			empty: "none",
+			help: "Comma separated paths copied from the base worktree, e.g. .idea.",
+		},
 	];
 }
 
 /** Turn raw form values into a config, falling back to `current` for blanks. */
 export function configFromForm(values: FormValues, current: RepoConfig, defaultBranch: string): RepoConfig {
-	const text = (id: string, fallback: string) => (typeof values[id] === "string" ? (values[id] as string).trim() : "") || fallback;
-	const list = (id: string) => text(id, "").split(",").map((s) => s.trim()).filter(Boolean);
+	const text = (id: string, fallback: string) =>
+		(typeof values[id] === "string" ? (values[id] as string).trim() : "") || fallback;
+	const list = (id: string) =>
+		text(id, "")
+			.split(",")
+			.map((s) => s.trim())
+			.filter(Boolean);
 	return {
 		sharedEnv: text("sharedEnv", current.sharedEnv),
 		baseBranch: text("baseBranch", current.baseBranch || defaultBranch),
 		protected: list("protected"),
 		branchTemplate: text("branchTemplate", current.branchTemplate),
 		fetchBeforeCreate: values.fetchBeforeCreate === true,
-		postCreate: text("postCreate", "").split(/\s*&&\s*/).filter(Boolean),
+		postCreate: text("postCreate", "")
+			.split(/\s*&&\s*/)
+			.filter(Boolean),
 		copy: list("copy"),
 		autoLink: values.autoLink === true,
 	};
@@ -118,7 +195,10 @@ async function askFields(ctx: ExtensionContext, fields: FormField[]): Promise<Fo
 	const values: FormValues = {};
 	for (const field of fields) {
 		if (field.kind === "toggle") {
-			values[field.id] = await ctx.ui.confirm(`${field.label}?`, `${field.help ?? ""}\nCurrently ${field.value ? "yes" : "no"}.`);
+			values[field.id] = await ctx.ui.confirm(
+				`${field.label}?`,
+				`${field.help ?? ""}\nCurrently ${field.value ? "yes" : "no"}.`,
+			);
 			continue;
 		}
 		const shown = field.value || field.empty || "empty";
@@ -147,7 +227,8 @@ export async function runSetup(ctx: ExtensionContext, state: State): Promise<boo
 	state.config = buildRepoConfig(readRepoConfigValues(bare.bareDir), bare.defaultBranch, state.settings);
 	state.configured = true;
 	state.isProtected = compileProtected(bare.defaultBranch, state.config.protected);
-	if (!existsSync(join(bare.root, sharedEnv))) ctx.ui.notify(`${sharedEnv} does not exist yet; create it and drop gitignored files in there.`, "warning");
+	if (!existsSync(join(bare.root, sharedEnv)))
+		ctx.ui.notify(`${sharedEnv} does not exist yet; create it and drop gitignored files in there.`, "warning");
 	ctx.ui.notify(`Saved to ${join(bare.bareDir, "config")} [bare-worktrees]. Running doctor…`, "info");
 	await runDoctor(ctx, state, true);
 	return true;
@@ -159,7 +240,8 @@ async function runDoctor(ctx: ExtensionContext, state: State, fix: boolean) {
 	if (fix) lines.push(`Linked ${r.fixed.linked} files, pruned ${r.fixed.pruned} stale worktrees.`);
 	for (const m of r.missingLinks) lines.push(`${m.worktree.name}: ${m.files.length} links missing`);
 	for (const c of r.conflicts) lines.push(`${c.worktree.name}: real files in the way: ${c.files.join(", ")}`);
-	for (const d of r.detached) lines.push(`${d.worktree.name}: detached HEAD${d.unpushed ? `, ${d.unpushed} unpushed commits` : ""}`);
+	for (const d of r.detached)
+		lines.push(`${d.worktree.name}: detached HEAD${d.unpushed ? `, ${d.unpushed} unpushed commits` : ""}`);
 	if (!fix) for (const p of r.prunable) lines.push(`${p.name}: directory missing (prunable)`);
 	ctx.ui.notify(lines.length ? lines.join("\n") : "Everything is in order.", lines.length && !fix ? "warning" : "info");
 }
@@ -216,7 +298,10 @@ async function pickWorktree(ctx: ExtensionCommandContext, state: State): Promise
 		ctx.ui.notify("No worktrees yet. /wt new <branch>", "info");
 		return null;
 	}
-	const labels = wts.map((w) => `${w.path === state.active?.path ? "● " : "  "}${w.branch ?? "(detached)"}${state.isProtected(w.branch) ? "  (protected)" : ""}`);
+	const labels = wts.map(
+		(w) =>
+			`${w.path === state.active?.path ? "● " : "  "}${w.branch ?? "(detached)"}${state.isProtected(w.branch) ? "  (protected)" : ""}`,
+	);
 	const choice = await ctx.ui.select("Switch to worktree", labels);
 	if (choice === undefined) return null;
 	return wts[labels.indexOf(choice)] ?? null;
@@ -244,11 +329,17 @@ export function registerCommands(pi: ExtensionAPI, state: State, refresher: Live
 			const sub = positional[0];
 
 			if (!state.bare) {
-				ctx.ui.notify("pi-bare-worktrees is inactive: this project is not a bare checkout (no .bare/ with core.bare=true above the cwd).", "warning");
+				ctx.ui.notify(
+					"pi-bare-worktrees is inactive: this project is not a bare checkout (no .bare/ with core.bare=true above the cwd).",
+					"warning",
+				);
 				return;
 			}
 			if (!state.configured && sub !== "setup") {
-				const go = await ctx.ui.confirm("pi-bare-worktrees is not configured for this repo", "Run the setup wizard now?");
+				const go = await ctx.ui.confirm(
+					"pi-bare-worktrees is not configured for this repo",
+					"Run the setup wizard now?",
+				);
 				if (!go) return;
 				if (!(await runSetup(ctx, state))) return;
 				if (!sub) return;
@@ -268,9 +359,16 @@ export function registerCommands(pi: ExtensionAPI, state: State, refresher: Live
 						const branch = positional[1];
 						if (!branch) return ctx.ui.notify("Usage: /wt new <branch> [--from <ref>] [--move]", "error");
 						const from = flags.get("from");
-						const r = await create(pi, ctx, state, branch, { ...(typeof from === "string" ? { from } : {}), ...(flags.has("move") ? { move: true } : {}) });
-						ctx.ui.notify(`Created ${r.worktree.name}: ${r.links.linked.length} env files linked${r.links.conflicts.length ? `, ${r.links.conflicts.length} conflicts` : ""}${r.moved ? ", changes moved" : ""}.`, "info");
-						for (const p of r.postCreate) if (p.code) ctx.ui.notify(`post-create failed (${p.code}): ${p.command}\n${p.output}`, "warning");
+						const r = await create(pi, ctx, state, branch, {
+							...(typeof from === "string" ? { from } : {}),
+							...(flags.has("move") ? { move: true } : {}),
+						});
+						ctx.ui.notify(
+							`Created ${r.worktree.name}: ${r.links.linked.length} env files linked${r.links.conflicts.length ? `, ${r.links.conflicts.length} conflicts` : ""}${r.moved ? ", changes moved" : ""}.`,
+							"info",
+						);
+						for (const p of r.postCreate)
+							if (p.code) ctx.ui.notify(`post-create failed (${p.code}): ${p.command}\n${p.output}`, "warning");
 						await switchSessionTo(ctx, state, r.worktree.path);
 						refresher.schedule(ctx);
 						return;
@@ -284,14 +382,22 @@ export function registerCommands(pi: ExtensionAPI, state: State, refresher: Live
 						return;
 					}
 					case "list": {
-						const lines = refreshWorktrees(state).map((w) => `${w.path === state.active?.path ? "●" : " "} ${w.branch ?? "(detached)"}${state.isProtected(w.branch) ? "  ro" : ""}${w.missing ? "  missing" : ""}`);
+						const lines = refreshWorktrees(state).map(
+							(w) =>
+								`${w.path === state.active?.path ? "●" : " "} ${w.branch ?? "(detached)"}${state.isProtected(w.branch) ? "  ro" : ""}${w.missing ? "  missing" : ""}`,
+						);
 						ctx.ui.notify(lines.join("\n") || "No worktrees.", "info");
 						return;
 					}
 					case "link": {
 						if (!state.active) return ctx.ui.notify("No active worktree.", "warning");
 						const r = ensureLinks(state, state.active.path);
-						ctx.ui.notify(r ? `Linked ${r.linked.length}, kept ${r.kept.length}${r.conflicts.length ? `, conflicts: ${r.conflicts.join(", ")}` : ""}.` : "All links present.", "info");
+						ctx.ui.notify(
+							r
+								? `Linked ${r.linked.length}, kept ${r.kept.length}${r.conflicts.length ? `, conflicts: ${r.conflicts.join(", ")}` : ""}.`
+								: "All links present.",
+							"info",
+						);
 						refresher.schedule(ctx);
 						return;
 					}
@@ -300,13 +406,22 @@ export function registerCommands(pi: ExtensionAPI, state: State, refresher: Live
 						if (!ref) return ctx.ui.notify("Usage: /wt rm <branch> [--force] [--branch]", "error");
 						const wt = findWorktree(state, ref);
 						if (!wt) return ctx.ui.notify(`No worktree for '${ref}'.`, "error");
-						const ok = await ctx.ui.confirm(`Remove worktree ${wt.name}?`, `${wt.path}${flags.has("branch") ? "\nThe branch will be deleted too." : ""}`);
+						const ok = await ctx.ui.confirm(
+							`Remove worktree ${wt.name}?`,
+							`${wt.path}${flags.has("branch") ? "\nThe branch will be deleted too." : ""}`,
+						);
 						if (!ok) return;
 						const wasActive = state.active?.path === wt.path;
-						const r = await remove(pi, ctx, state, ref, { force: flags.has("force"), deleteBranch: flags.has("branch") });
+						const r = await remove(pi, ctx, state, ref, {
+							force: flags.has("force"),
+							deleteBranch: flags.has("branch"),
+						});
 						ctx.ui.notify(`Removed ${r.removed.name}${r.branchDeleted ? " and its branch" : ""}.`, "info");
 						if (wasActive) {
-							const fallback = worktreeForPath(state.worktrees, state.cwd) ?? state.worktrees.find((w) => w.branch === state.bare!.defaultBranch) ?? null;
+							const fallback =
+								worktreeForPath(state.worktrees, state.cwd) ??
+								state.worktrees.find((w) => w.branch === state.bare!.defaultBranch) ??
+								null;
 							if (fallback) {
 								activate(pi, ctx, state, fallback);
 								await switchSessionTo(ctx, state, fallback.path);
@@ -324,7 +439,8 @@ export function registerCommands(pi: ExtensionAPI, state: State, refresher: Live
 					case "sync": {
 						if (!state.active) return ctx.ui.notify("No active worktree.", "warning");
 						if (!isRouted(state)) return ctx.ui.notify(`Session already runs in ${state.active.path}.`, "info");
-						if (!(await switchSessionTo(ctx, state, state.active.path))) ctx.ui.notify("Could not switch the session; tools stay routed.", "warning");
+						if (!(await switchSessionTo(ctx, state, state.active.path)))
+							ctx.ui.notify("Could not switch the session; tools stay routed.", "warning");
 						return;
 					}
 					case "setup":
@@ -335,7 +451,10 @@ export function registerCommands(pi: ExtensionAPI, state: State, refresher: Live
 						ctx.ui.notify("Enforcement on: protected branches are read-only.", "info");
 						return;
 					case "off": {
-						const ok = await ctx.ui.confirm("Turn enforcement off for this session?", "The agent may then edit protected branches directly.");
+						const ok = await ctx.ui.confirm(
+							"Turn enforcement off for this session?",
+							"The agent may then edit protected branches directly.",
+						);
 						if (!ok) return;
 						setEnforcement(pi, ctx, state, "off");
 						ctx.ui.notify("Enforcement off for this session.", "warning");

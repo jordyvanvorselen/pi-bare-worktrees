@@ -20,13 +20,14 @@ Rules:
 export function renderSection(state: State): string {
 	const template = customTemplate(state) ?? DEFAULT_TEMPLATE;
 	const protectedNow = activeIsProtected(state);
-	const stateText = state.enforcement === "off"
-		? "enforcement OFF for this session, writes allowed anywhere"
-		: protectedNow
-			? "PROTECTED, read-only until you create a worktree"
-			: isRouted(state)
-				? "writable, tools are routed here"
-				: "writable";
+	const stateText =
+		state.enforcement === "off"
+			? "enforcement OFF for this session, writes allowed anywhere"
+			: protectedNow
+				? "PROTECTED, read-only until you create a worktree"
+				: isRouted(state)
+					? "writable, tools are routed here"
+					: "writable";
 	const branchTemplate = state.config?.branchTemplate ?? "feat/{slug}";
 	return template
 		.replace(/\{root\}/g, state.bare?.root ?? "")

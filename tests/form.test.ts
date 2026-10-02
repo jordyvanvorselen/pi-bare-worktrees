@@ -67,7 +67,12 @@ describe("setup form", () => {
 	});
 
 	it("splits list and command fields on save", () => {
-		const values = { ...model().values(), protected: "release/*, hotfix/*", postCreate: "npm ci && npm run build", copy: ".idea" };
+		const values = {
+			...model().values(),
+			protected: "release/*, hotfix/*",
+			postCreate: "npm ci && npm run build",
+			copy: ".idea",
+		};
 		const parsed = configFromForm(values, config, "main");
 		assert.deepEqual(parsed.protected, ["release/*", "hotfix/*"]);
 		assert.deepEqual(parsed.postCreate, ["npm ci", "npm run build"]);

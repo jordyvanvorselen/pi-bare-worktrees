@@ -22,7 +22,8 @@ export function statusText(state: State): string | undefined {
 	if (live) {
 		if (live.dirty) parts.push("●");
 		if (live.gone) parts.push("gone");
-		else if (live.ahead || live.behind) parts.push(`${live.ahead ? `↑${live.ahead}` : ""}${live.behind ? `↓${live.behind}` : ""}`);
+		else if (live.ahead || live.behind)
+			parts.push(`${live.ahead ? `↑${live.ahead}` : ""}${live.behind ? `↓${live.behind}` : ""}`);
 		if (live.missingLinks) parts.push(`⚠${live.missingLinks} links`);
 	}
 	return parts.join(" ");

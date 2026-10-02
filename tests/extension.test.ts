@@ -38,7 +38,8 @@ function harness(cwd: string) {
 		for (const h of handlers[e] ?? []) result = (await h(ev, ctx)) ?? result;
 		return result as { block?: boolean; reason?: string } | undefined;
 	};
-	const call = (toolName: string, input: Record<string, unknown>) => fire("tool_call", { type: "tool_call", toolName, toolCallId: "t", input }).then((r) => ({ r, input }));
+	const call = (toolName: string, input: Record<string, unknown>) =>
+		fire("tool_call", { type: "tool_call", toolName, toolCallId: "t", input }).then((r) => ({ r, input }));
 	return { fire, call, tools, ctx, entries, notices, isActive: () => active.includes("worktree") };
 }
 
@@ -57,12 +58,22 @@ describe("extension wiring", () => {
 		const blocked = await h.call("edit", { path: "README.md" });
 		assert.match(blocked.r?.reason ?? "", /worktree\(\{action:"create"/);
 
-		const result = await h.tools.worktree!.execute("id", { action: "create", branch: "feat/routed" }, undefined, undefined, h.ctx);
+		const result = await h.tools.worktree!.execute(
+			"id",
+			{ action: "create", branch: "feat/routed" },
+			undefined,
+			undefined,
+			h.ctx,
+		);
 		assert.match(result.content[0]!.text, /Created worktree feat\/routed/);
 
 		const edit = await h.call("edit", { path: "README.md" });
 		assert.equal(edit.r, undefined, "writes in the new worktree pass");
-		assert.equal(edit.input.path, join(repo.root, "feat", "routed", "README.md"), "relative paths are rewritten into the worktree");
+		assert.equal(
+			edit.input.path,
+			join(repo.root, "feat", "routed", "README.md"),
+			"relative paths are rewritten into the worktree",
+		);
 
 		const bash = await h.call("bash", { command: "git commit -am x" });
 		assert.equal(bash.r, undefined);
@@ -95,7 +106,11 @@ describe("extension wiring", () => {
 		const h = harness(join(repo.root, "main"));
 		h.ctx.sessionManager.getBranch = () =>
 			[
-				{ type: "custom", customType: "bare-worktrees", data: { active: { branch: "feat/routed", path: join(repo.root, "feat", "routed") } } },
+				{
+					type: "custom",
+					customType: "bare-worktrees",
+					data: { active: { branch: "feat/routed", path: join(repo.root, "feat", "routed") } },
+				},
 				{ type: "custom", customType: "bare-worktrees", data: { enforcement: "off" } },
 			] as never;
 		await h.fire("session_start", { type: "session_start", reason: "resume" });

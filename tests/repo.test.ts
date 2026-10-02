@@ -2,7 +2,15 @@ import assert from "node:assert/strict";
 import { existsSync, lstatSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
-import { addWorktree, findBareRoot, goneBranches, listWorktrees, removeWorktree, worktreeForPath, worktreePath } from "../src/repo.ts";
+import {
+	addWorktree,
+	findBareRoot,
+	goneBranches,
+	listWorktrees,
+	removeWorktree,
+	worktreeForPath,
+	worktreePath,
+} from "../src/repo.ts";
 import { linkSharedEnv, missingLinks } from "../src/shared-env.ts";
 import { makeBareRepo, sh } from "./helpers.ts";
 
@@ -28,7 +36,10 @@ describe("bare repo layout", () => {
 	it("lists worktrees from the bare metadata", () => {
 		const bare = findBareRoot(repo.root)!;
 		const wts = listWorktrees(bare);
-		assert.deepEqual(wts.map((w) => [w.name, w.branch, w.missing]), [["main", "main", false]]);
+		assert.deepEqual(
+			wts.map((w) => [w.name, w.branch, w.missing]),
+			[["main", "main", false]],
+		);
 	});
 
 	it("adds an existing local, a remote-only, and a new branch at <root>/<branch>", async () => {
