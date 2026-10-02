@@ -4,11 +4,17 @@
  */
 
 export function globToRegExp(glob: string): RegExp {
-	const escaped = glob.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".");
+	const escaped = glob
+		.replace(/[.+^${}()|[\]\\]/g, "\\$&")
+		.replace(/\*/g, ".*")
+		.replace(/\?/g, ".");
 	return new RegExp(`^${escaped}$`);
 }
 
-export function compileProtected(defaultBranch: string, patterns: readonly string[]): (branch: string | null) => boolean {
+export function compileProtected(
+	defaultBranch: string,
+	patterns: readonly string[],
+): (branch: string | null) => boolean {
 	const regexes = patterns.map(globToRegExp);
 	return (branch) => {
 		if (branch === null) return false;
@@ -28,13 +34,16 @@ export interface BashClassification {
 // `git checkout <branch>` and `git switch` change which branch a worktree
 // holds and break the "path equals branch" rule. `git checkout -- <file>`
 // and `git checkout <ref> -- <file>` only restore files and stay allowed.
-const WORKTREE_SWITCH = /\bgit\s+(?:-C\s+\S+\s+)?(?:worktree\s+(?:add|remove|move|prune|lock|unlock)|switch\b(?![^\n;&|]*\s--\s)|checkout\b(?![^\n;&|]*\s--(?:\s|$)))/;
+const WORKTREE_SWITCH =
+	/\bgit\s+(?:-C\s+\S+\s+)?(?:worktree\s+(?:add|remove|move|prune|lock|unlock)|switch\b(?![^\n;&|]*\s--\s)|checkout\b(?![^\n;&|]*\s--(?:\s|$)))/;
 
-const GIT_MUTATION = /\bgit\s+(?:-C\s+\S+\s+)?(?:commit|merge|rebase|reset|push|pull|cherry-pick|revert|am|apply|restore|clean|rm|mv|add|stash\s+(?:pop|apply|drop)|tag|branch\s+(?:-[dDmM]|--delete|--move))\b/;
+const GIT_MUTATION =
+	/\bgit\s+(?:-C\s+\S+\s+)?(?:commit|merge|rebase|reset|push|pull|cherry-pick|revert|am|apply|restore|clean|rm|mv|add|stash\s+(?:pop|apply|drop)|tag|branch\s+(?:-[dDmM]|--delete|--move))\b/;
 
 // Common in-tree writers. Redirects to /dev/null and to absolute paths
 // outside the tree are fine; those are filtered by the caller.
-const FILE_MUTATION = /(?:^|[\s;&|(])(?:rm|mv|cp|touch|mkdir|rmdir|ln|chmod|chown|truncate|tee|install|patch)\s|\bsed\s+(?:-[a-zA-Z]*i|--in-place)|(?:^|[^<>|&\d])>{1,2}\s*(?!\/dev\/null|&)/m;
+const FILE_MUTATION =
+	/(?:^|[\s;&|(])(?:rm|mv|cp|touch|mkdir|rmdir|ln|chmod|chown|truncate|tee|install|patch)\s|\bsed\s+(?:-[a-zA-Z]*i|--in-place)|(?:^|[^<>|&\d])>{1,2}\s*(?!\/dev\/null|&)/m;
 
 export function classifyBash(command: string): BashClassification | null {
 	const stripped = stripQuotedHeredocs(command);

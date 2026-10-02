@@ -35,7 +35,10 @@ export default function piBareWorktrees(pi: ExtensionAPI) {
 	registerWorktreeTool(pi, state, refresher);
 	registerCommands(pi, state, refresher);
 
-	function restoreFromSession(ctx: ExtensionContext): { active: { path: string } | null | undefined; enforcement: "on" | "off" | undefined } {
+	function restoreFromSession(ctx: ExtensionContext): {
+		active: { path: string } | null | undefined;
+		enforcement: "on" | "off" | undefined;
+	} {
 		let active: { path: string } | null | undefined;
 		let enforcement: "on" | "off" | undefined;
 		for (const entry of ctx.sessionManager.getBranch()) {
@@ -88,12 +91,15 @@ export default function piBareWorktrees(pi: ExtensionAPI) {
 
 		const restored = restoreFromSession(ctx);
 		state.enforcement = restored.enforcement ?? "on";
-		const restoredActive = restored.active ? state.worktrees.find((w) => w.path === restored.active!.path && !w.missing) : undefined;
+		const restoredActive = restored.active
+			? state.worktrees.find((w) => w.path === restored.active!.path && !w.missing)
+			: undefined;
 		state.active = restoredActive ?? worktreeForPath(state.worktrees, ctx.cwd);
 
 		if (state.active && state.config.autoLink) {
 			const r = ensureLinks(state, state.active.path);
-			if (r?.linked.length && ctx.hasUI) ctx.ui.notify(`Linked ${r.linked.length} shared env files into ${state.active.name}.`, "info");
+			if (r?.linked.length && ctx.hasUI)
+				ctx.ui.notify(`Linked ${r.linked.length} shared env files into ${state.active.name}.`, "info");
 		}
 		if (!state.configured && event.reason === "startup" && ctx.hasUI) {
 			ctx.ui.notify("pi-bare-worktrees: bare checkout detected but not configured. Run /wt setup.", "warning");
@@ -135,7 +141,8 @@ export default function piBareWorktrees(pi: ExtensionAPI) {
 			if (name === "bash" && typeof input.command === "string") {
 				input.command = `cd ${shellQuote(active.path)}\n${input.command}`;
 			} else if (PATH_TOOLS.has(name)) {
-				if (typeof input.path === "string" && input.path && !isAbsolute(input.path)) input.path = join(active.path, input.path);
+				if (typeof input.path === "string" && input.path && !isAbsolute(input.path))
+					input.path = join(active.path, input.path);
 				else if (input.path === undefined && CWD_DEFAULT_TOOLS.has(name)) input.path = active.path;
 			}
 		}
@@ -154,7 +161,8 @@ export default function piBareWorktrees(pi: ExtensionAPI) {
 				};
 			}
 			const touchesProtected =
-				activeIsProtected(state) || state.worktrees.some((w) => state.isProtected(w.branch) && command.includes(w.path));
+				activeIsProtected(state) ||
+				state.worktrees.some((w) => state.isProtected(w.branch) && command.includes(w.path));
 			if (touchesProtected) return { block: true, reason: createHint(cls.match) };
 			return;
 		}

@@ -55,7 +55,12 @@ export function snapshot(state: State): PublicSnapshot {
 	return {
 		root: state.bare?.root ?? null,
 		active: state.active
-			? { branch: state.active.branch, path: state.active.path, name: state.active.name, protected: state.isProtected(state.active.branch) }
+			? {
+					branch: state.active.branch,
+					path: state.active.path,
+					name: state.active.name,
+					protected: state.isProtected(state.active.branch),
+				}
 			: null,
 		enforcement: state.enforcement,
 		routed: isRouted(state),

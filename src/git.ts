@@ -17,11 +17,12 @@ export function git(cwd: string, args: string[], timeoutMs = 30_000): Promise<Gi
 			args,
 			{ cwd, timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024, env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" } },
 			(error, stdout, stderr) => {
-				const code = error && typeof (error as NodeJS.ErrnoException & { code?: unknown }).code === "number"
-					? ((error as { code: number }).code)
-					: error
-						? 1
-						: 0;
+				const code =
+					error && typeof (error as NodeJS.ErrnoException & { code?: unknown }).code === "number"
+						? (error as { code: number }).code
+						: error
+							? 1
+							: 0;
 				resolve({ stdout: String(stdout).trim(), stderr: String(stderr).trim(), code });
 			},
 		);

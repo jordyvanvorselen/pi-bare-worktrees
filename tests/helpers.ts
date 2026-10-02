@@ -15,8 +15,15 @@ export function makeBareRepo(): { root: string; origin: string; cleanup: () => v
 	const base = mkdtempSync(join(tmpdir(), "pi-bare-wt-"));
 	const origin = join(base, "origin.git");
 	const root = join(base, "repo");
-	const env = { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" };
-	const g = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8", env, stdio: ["ignore", "pipe", "pipe"] }).trim();
+	const env = {
+		...process.env,
+		GIT_AUTHOR_NAME: "t",
+		GIT_AUTHOR_EMAIL: "t@t",
+		GIT_COMMITTER_NAME: "t",
+		GIT_COMMITTER_EMAIL: "t@t",
+	};
+	const g = (cwd: string, ...args: string[]) =>
+		execFileSync("git", args, { cwd, encoding: "utf8", env, stdio: ["ignore", "pipe", "pipe"] }).trim();
 
 	// seed origin with one commit on main
 	const seed = join(base, "seed");

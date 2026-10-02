@@ -44,7 +44,8 @@ export interface DoctorReport {
 }
 
 function requireBare(state: State) {
-	if (!state.bare || !state.config) throw new WorktreeError("Not inside a bare checkout; pi-bare-worktrees is inactive here.");
+	if (!state.bare || !state.config)
+		throw new WorktreeError("Not inside a bare checkout; pi-bare-worktrees is inactive here.");
 	return { bare: state.bare, config: state.config };
 }
 
@@ -87,10 +88,15 @@ export function ensureLinks(state: State, worktree: string): LinkReport | null {
 
 function runShell(command: string, cwd: string, timeoutMs: number): Promise<{ code: number; output: string }> {
 	return new Promise((resolve) => {
-		execFile("/bin/sh", ["-c", command], { cwd, timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024 }, (error, stdout, stderr) => {
-			const code = error ? ((error as { code?: number }).code ?? 1) : 0;
-			resolve({ code: typeof code === "number" ? code : 1, output: `${stdout}${stderr}`.trim().slice(-2000) });
-		});
+		execFile(
+			"/bin/sh",
+			["-c", command],
+			{ cwd, timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024 },
+			(error, stdout, stderr) => {
+				const code = error ? ((error as { code?: number }).code ?? 1) : 0;
+				resolve({ code: typeof code === "number" ? code : 1, output: `${stdout}${stderr}`.trim().slice(-2000) });
+			},
+		);
 	});
 }
 
@@ -105,7 +111,8 @@ export async function create(
 	const invalid = validateBranchName(branch);
 	if (invalid) throw new WorktreeError(invalid);
 	const existing = refreshWorktrees(state).find((w) => w.branch === branch || w.path === worktreePath(bare, branch));
-	if (existing && !existing.missing) throw new WorktreeError(`Worktree for '${branch}' already exists at ${existing.path}. Use action "use".`);
+	if (existing && !existing.missing)
+		throw new WorktreeError(`Worktree for '${branch}' already exists at ${existing.path}. Use action "use".`);
 	if (existing?.missing) await pruneWorktrees(bare);
 
 	const moveFrom = options.move && state.active ? state.active.path : null;
@@ -153,13 +160,22 @@ export async function create(
 
 export function findWorktree(state: State, ref: string): Worktree | null {
 	const wts = refreshWorktrees(state);
-	return wts.find((w) => w.branch === ref) ?? wts.find((w) => w.name === ref) ?? wts.find((w) => w.path === ref) ?? null;
+	return (
+		wts.find((w) => w.branch === ref) ?? wts.find((w) => w.name === ref) ?? wts.find((w) => w.path === ref) ?? null
+	);
 }
 
-export async function use(pi: ExtensionAPI, ctx: ExtensionContext, state: State, ref: string, options: { move?: boolean } = {}): Promise<{ worktree: Worktree; links: LinkReport | null; moved: boolean }> {
+export async function use(
+	pi: ExtensionAPI,
+	ctx: ExtensionContext,
+	state: State,
+	ref: string,
+	options: { move?: boolean } = {},
+): Promise<{ worktree: Worktree; links: LinkReport | null; moved: boolean }> {
 	requireBare(state);
 	const wt = findWorktree(state, ref);
-	if (!wt || wt.missing) throw new WorktreeError(`No worktree for '${ref}'. Use action "list" to see them, or "create" to add one.`);
+	if (!wt || wt.missing)
+		throw new WorktreeError(`No worktree for '${ref}'. Use action "list" to see them, or "create" to add one.`);
 	let moved = false;
 	if (options.move && state.active && state.active.path !== wt.path) {
 		moved = await stashPush(state.active.path);
@@ -196,7 +212,13 @@ export async function remove(
 
 export async function doctor(state: State, fix: boolean): Promise<DoctorReport> {
 	const { bare } = requireBare(state);
-	const report: DoctorReport = { missingLinks: [], conflicts: [], detached: [], prunable: [], fixed: { linked: 0, pruned: 0 } };
+	const report: DoctorReport = {
+		missingLinks: [],
+		conflicts: [],
+		detached: [],
+		prunable: [],
+		fixed: { linked: 0, pruned: 0 },
+	};
 	const dir = sharedDir(state);
 	for (const wt of refreshWorktrees(state)) {
 		if (wt.missing) {

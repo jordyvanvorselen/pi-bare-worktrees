@@ -47,19 +47,19 @@ Setup opens one screen with every setting prefilled: shared env directory, base 
 
 ## Commands
 
-| Command | What it does |
-|---|---|
-| `/wt` | Pick a worktree and switch the session into it |
-| `/wt new <branch> [--from <ref>] [--move]` | Create at `<root>/<branch>`, link env, run post-create, switch |
-| `/wt use <branch> [--move]` | Switch into an existing worktree |
-| `/wt list` | Worktrees with active and read-only marks |
-| `/wt link` | Re-sync shared env links into the active worktree |
-| `/wt rm <branch> [--force] [--branch]` | Remove a worktree, optionally its branch |
-| `/wt clean` | Fetch with prune, then pick which gone or missing worktrees to remove |
-| `/wt doctor [--fix]` | Missing links, conflicts, detached HEADs, prunable entries |
-| `/wt sync` | Move the session cwd into the active worktree after the model created it |
-| `/wt on` / `/wt off` | Enforcement for this session. Off needs a confirm |
-| `/wt setup` | Run the wizard again |
+| Command                                    | What it does                                                             |
+| ------------------------------------------ | ------------------------------------------------------------------------ |
+| `/wt`                                      | Pick a worktree and switch the session into it                           |
+| `/wt new <branch> [--from <ref>] [--move]` | Create at `<root>/<branch>`, link env, run post-create, switch           |
+| `/wt use <branch> [--move]`                | Switch into an existing worktree                                         |
+| `/wt list`                                 | Worktrees with active and read-only marks                                |
+| `/wt link`                                 | Re-sync shared env links into the active worktree                        |
+| `/wt rm <branch> [--force] [--branch]`     | Remove a worktree, optionally its branch                                 |
+| `/wt clean`                                | Fetch with prune, then pick which gone or missing worktrees to remove    |
+| `/wt doctor [--fix]`                       | Missing links, conflicts, detached HEADs, prunable entries               |
+| `/wt sync`                                 | Move the session cwd into the active worktree after the model created it |
+| `/wt on` / `/wt off`                       | Enforcement for this session. Off needs a confirm                        |
+| `/wt setup`                                | Run the wizard again                                                     |
 
 `--move` stashes uncommitted changes and pops them in the target.
 
@@ -74,14 +74,14 @@ After `create` or `use`, every built-in tool call is routed into that worktree: 
 
 ## Enforcement
 
-| Call | Protected worktree | Feature worktree |
-|---|---|---|
-| read, grep, find, ls | allow | allow |
-| bash: build, test, `git status/log/diff` | allow | allow |
-| bash: `git commit/push/rebase/reset/...`, `rm`, `sed -i`, `>` | block | allow |
-| bash: `git worktree`, `git switch`, `git checkout <branch>` | block | block |
-| edit, write | block | allow |
-| subagent | `cwd` set to active worktree | same |
+| Call                                                          | Protected worktree           | Feature worktree |
+| ------------------------------------------------------------- | ---------------------------- | ---------------- |
+| read, grep, find, ls                                          | allow                        | allow            |
+| bash: build, test, `git status/log/diff`                      | allow                        | allow            |
+| bash: `git commit/push/rebase/reset/...`, `rm`, `sed -i`, `>` | block                        | allow            |
+| bash: `git worktree`, `git switch`, `git checkout <branch>`   | block                        | block            |
+| edit, write                                                   | block                        | allow            |
+| subagent                                                      | `cwd` set to active worktree | same             |
 
 Blocked calls return a reason that names the exact `worktree create` call to make. Bash detection is a regex over the command; it catches the common cases and is cheap. `git checkout -- <file>` is allowed.
 
@@ -140,7 +140,26 @@ pi.events.on("bare-worktrees:changed", (s) => {
 
 ```sh
 npm install
+npm run lint
 npm run typecheck
 npm test
 pi -e ./src/index.ts
 ```
+
+Run `npm run lint:fix` to fix lint and formatting problems.
+
+## Versioning and releases
+
+This package follows [semantic versioning](https://semver.org). Every pull request must raise the version in `package.json`. CI fails the pull request when the version is not higher than on `main`.
+
+Pick the bump that matches the change:
+
+| Change                                                | Command                                  | Example         |
+| ----------------------------------------------------- | ---------------------------------------- | --------------- |
+| Bug fix, docs, internal change                        | `npm version patch --no-git-tag-version` | `0.1.0 → 0.1.1` |
+| New feature or setting that keeps old behaviour       | `npm version minor --no-git-tag-version` | `0.1.1 → 0.2.0` |
+| Breaking change, such as a removed or renamed setting | `npm version major --no-git-tag-version` | `0.2.0 → 1.0.0` |
+
+The command updates both `package.json` and `package-lock.json`. Commit both files.
+
+When a pull request merges, GitHub Actions runs the checks again and publishes the new version to npm. It then creates a GitHub release tagged with the version number, such as `0.1.2`. GitHub generates the release notes from the merged pull requests.

@@ -33,6 +33,7 @@ export interface FormTheme {
 
 export type FormAction = "continue" | "submit" | "cancel";
 
+// eslint-disable-next-line no-control-regex -- matches control characters on purpose to reject them.
 const PRINTABLE = /^[^\u0000-\u001f\u007f]+$/u;
 
 /**
@@ -113,7 +114,8 @@ export class FormModel {
 			if (!this.cursor) return;
 			return set(field.value.slice(0, this.cursor - 1) + field.value.slice(this.cursor), this.cursor - 1);
 		}
-		if (matchesKey(data, Key.delete)) return set(field.value.slice(0, this.cursor) + field.value.slice(this.cursor + 1), this.cursor);
+		if (matchesKey(data, Key.delete))
+			return set(field.value.slice(0, this.cursor) + field.value.slice(this.cursor + 1), this.cursor);
 		if (!PRINTABLE.test(data)) return;
 		set(field.value.slice(0, this.cursor) + data + field.value.slice(this.cursor), this.cursor + data.length);
 	}
@@ -121,11 +123,17 @@ export class FormModel {
 	render(width: number, theme: FormTheme, title: string): string[] {
 		const labelWidth = Math.max(...this.fields.map((f) => f.label.length)) + 2;
 		const valueWidth = Math.max(8, width - labelWidth - 5);
-		const lines = [theme.fg("accent", theme.bold(` ${title}`)), theme.fg("dim", " ↑↓ field · type to edit · enter next · ctrl+s save · esc cancel"), ""];
+		const lines = [
+			theme.fg("accent", theme.bold(` ${title}`)),
+			theme.fg("dim", " ↑↓ field · type to edit · enter next · ctrl+s save · esc cancel"),
+			"",
+		];
 		this.fields.forEach((field, i) => {
 			const active = i === this.index;
 			const pointer = active ? theme.fg("accent", "› ") : "  ";
-			const label = (active ? theme.fg("text", field.label) : theme.fg("muted", field.label)) + " ".repeat(labelWidth - field.label.length);
+			const label =
+				(active ? theme.fg("text", field.label) : theme.fg("muted", field.label)) +
+				" ".repeat(labelWidth - field.label.length);
 			lines.push(truncateToWidth(`${pointer}${label}${this.renderValue(field, active, theme, valueWidth)}`, width));
 		});
 		const help = this.focused?.help;
@@ -136,9 +144,14 @@ export class FormModel {
 	private renderValue(field: FormField, active: boolean, theme: FormTheme, valueWidth: number): string {
 		if (field.kind === "toggle") {
 			const text = field.value ? "[x] yes" : "[ ] no";
-			return active ? theme.fg("accent", text) + theme.fg("dim", "  space toggles") : theme.fg(field.value ? "text" : "muted", text);
+			return active
+				? theme.fg("accent", text) + theme.fg("dim", "  space toggles")
+				: theme.fg(field.value ? "text" : "muted", text);
 		}
-		if (!active) return field.value ? theme.fg("muted", truncateToWidth(field.value, valueWidth)) : theme.fg("dim", field.empty ?? "none");
+		if (!active)
+			return field.value
+				? theme.fg("muted", truncateToWidth(field.value, valueWidth))
+				: theme.fg("dim", field.empty ?? "none");
 		const start = Math.max(0, this.cursor - valueWidth + 1);
 		const view = field.value.slice(start, start + valueWidth);
 		const at = this.cursor - start;
@@ -153,7 +166,11 @@ export class FormModel {
  * when the user cancels, or undefined when the host has no TUI to draw on
  * (RPC and print modes), so the caller can fall back to prompts.
  */
-export async function editForm(ctx: ExtensionContext, title: string, fields: FormField[]): Promise<FormValues | null | undefined> {
+export async function editForm(
+	ctx: ExtensionContext,
+	title: string,
+	fields: FormField[],
+): Promise<FormValues | null | undefined> {
 	const model = new FormModel(fields);
 	const result = await ctx.ui.custom<FormValues | null>(
 		(tui, theme, _kb, done) => ({

@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { classifyBash, compileProtected, renderBranch, shellQuote, slugify, validateBranchName } from "../src/policy.ts";
+import {
+	classifyBash,
+	compileProtected,
+	renderBranch,
+	shellQuote,
+	slugify,
+	validateBranchName,
+} from "../src/policy.ts";
 
 describe("compileProtected", () => {
 	const isProtected = compileProtected("main", ["release/*", "hotfix/?.?"]);
